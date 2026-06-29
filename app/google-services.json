@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "714767483567",
+    "project_id": "pullarao-appforge-55a8f",
+    "storage_bucket": "pullarao-appforge-55a8f.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:714767483567:android:50d3145e84643a60808a5a",
+        "android_client_info": {
+          "package_name": "com.glm.aiapp"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCECpWHBqYeSRgTbHGvQC4g8eJOKcnwefw"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:714767483567:android:50d3145e84643a60808a5a",
+        "android_client_info": {
+          "package_name": "com.glm.aiapp.debug"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCECpWHBqYeSRgTbHGvQC4g8eJOKcnwefw"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
