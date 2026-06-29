@@ -64,7 +64,7 @@ fun LoginScreen(vm: LoginViewModel = hiltViewModel()) {
         } catch (e: ApiException) {
             Log.e("LoginScreen", "Google Sign-In ApiException", e)
             val msg = when (e.statusCode) {
-                10 -> "DEVELOPER_ERROR (code 10). The Web Client ID or SHA-1 is wrong. Go to console.cloud.google.com → APIs & Services → Credentials and check: 1) there's a Web Application OAuth client with ID 714767483567.apps.googleusercontent.com, 2) the Android OAuth client has package com.glm.aiapp and SHA-1 88:3F:61:28:7B:28:90:28:67:65:A9:61:9E:A3:C1:5B:25:B0:84:2D"
+                10 -> "DEVELOPER_ERROR (code 10). This usually means you're running an old APK. Uninstall the app completely and install the latest build. If it persists, the Web Client ID (714767483567-jgo1ls597k3gqs7pcu97j941rndrs9bh) or SHA-1 (88:3F:61:28:7B:28:90:28:67:65:A9:61:9E:A3:C1:5B:25:B0:84:2D) may not be registered in Google Cloud Console."
                 12500 -> "Google Play services error (code 12500). Update Google Play Services on your device."
                 12501 -> "Sign-in cancelled."
                 7 -> "Network error. Check your internet connection."
