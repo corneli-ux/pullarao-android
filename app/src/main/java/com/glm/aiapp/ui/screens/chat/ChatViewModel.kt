@@ -80,10 +80,10 @@ class ChatViewModel @Inject constructor(
 
     private suspend fun sendAfterCreate(conversationId: String, text: String) {
         val params = settings.value?.chatParams ?: ChatParams()
-        val apiKey = settings.value?.apiKey?.trim().orEmpty()
+        val sessionToken = settings.value?.sessionToken?.trim().orEmpty()
 
-        if (apiKey.isBlank()) {
-            _error.value = "No API key configured. Open Settings → Connection → API key and paste your GLM API key (get one at https://open.bigmodel.cn/usercenter/apikeys)."
+        if (sessionToken.isBlank()) {
+            _error.value = "Not signed in. Open Settings → Account → Sign in with your email and password to start chatting."
             return
         }
 

@@ -70,12 +70,22 @@ data class ChatParams(
 )
 
 data class AppSettings(
-    val apiKey: String = "",
-    val baseUrl: String = DEFAULT_BASE_URL,
+    /** Where the Pullarao AppForge platform is deployed. All GLM calls go through here. */
+    val platformUrl: String = DEFAULT_PLATFORM_URL,
+    /** Bearer JWT returned by POST /api/mobile/login. Empty when logged out. */
+    val sessionToken: String = "",
+    /** User info from /api/mobile/me — shown in the header. */
+    val userEmail: String = "",
+    val userName: String = "",
     val chatParams: ChatParams = ChatParams(),
     val themeMode: ThemeMode = ThemeMode.SYSTEM
 )
 
 enum class ThemeMode { SYSTEM, LIGHT, DARK }
 
-const val DEFAULT_BASE_URL = "https://open.bigmodel.cn/api/paas/v4/"
+/**
+ * Default platform URL — points at the Pullarao AppForge web app.
+ * Students log in with email + password and never need an API key.
+ * Override this in Settings to point at your own deployment.
+ */
+const val DEFAULT_PLATFORM_URL = "https://pullarao-appforge.vercel.app"

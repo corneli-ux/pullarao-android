@@ -59,6 +59,9 @@ class ChatRepositoryImpl @Inject constructor(
         onThinking: (String) -> Unit
     ): Message {
         val settings = settingsRepo.settings.first()
+        if (settings.sessionToken.isBlank()) {
+            error("Not signed in. Open Settings → Account → Sign in with your email and password.")
+        }
         val conv = db.conversationDao().getById(conversationId)
             ?: error("Conversation $conversationId not found")
         val history = db.messageDao().observeByConversation(conversationId).first()
@@ -71,41 +74,38 @@ class ChatRepositoryImpl @Inject constructor(
             messages += ChatMessage(m.role.lowercase(), JsonPrimitive(m.content))
         }
 
-        val baseUrl = settings.baseUrl.trimEnd('/')
-        val url = "$baseUrl/chat/completions"
-        val request = ChatCompletionRequest(
-            model = params.model.id,
-            messages = messages,
-            temperature = params.temperature,
-            maxTokens = params.maxTokens,
-            topP = params.topP,
-            stream = true,
-            thinking = ThinkingConfig(params.thinking.id)
-        )
-        val payload = json.encodeToString(request)
+        // Build the request we'll send to the platform's GLM proxy
+        val platformUrl = settings.platformUrl.trimEnd('/')
+        val url = "$platformUrl/api/glm/chat"
+        val messagesJson = buildJsonArray {
+            messages.forEach { m ->
+                add(buildJsonObject {
+                    put("role", JsonPrimitive(m.role))
+                    put("content", JsonPrimitive(m.content))
+                })
+            }
+        }
+        val requestBody = buildJsonObject {
+            put("messages", messagesJson)
+            put("temperature", JsonPrimitive(params.temperature.toDouble()))
+            put("max_tokens", JsonPrimitive(params.maxTokens))
+        }
+        val payload = json.encodeToString(JsonObject.serializer(), requestBody)
 
         val contentBuilder = StringBuilder()
         val thinkingBuilder = StringBuilder()
         var usage: Usage? = null
 
-        if (params.streaming) {
-            streamClient.stream(url, settings.apiKey, payload).collect { chunk ->
-                chunk.choices.forEach { choice ->
-                    choice.delta?.content?.let { onToken(it); contentBuilder.append(it) }
-                    choice.delta?.thinking?.let { onThinking(it); thinkingBuilder.append(it) }
+        // The platform returns SSE events: { "type": "token"|"done"|"error", "content"|"message" }
+        streamClient.streamAuthorized(url, settings.sessionToken, payload).collect { evt ->
+            when (evt.optString("type")) {
+                "token" -> {
+                    val tok = evt.optString("content", "")
+                    if (tok.isNotEmpty()) { onToken(tok); contentBuilder.append(tok) }
                 }
-                chunk.usage?.let { usage = it }
+                "done" -> { /* stream finished */ }
+                "error" -> error(evt.optString("message", "Chat request failed"))
             }
-        } else {
-            val response = api.chatCompletion(request.copy(stream = false))
-            response.choices.firstOrNull()?.message?.content?.let { raw ->
-                val text = runCatching { json.decodeFromString<JsonElement>(raw.toString()) }
-                    .map { element -> element.jsonPrimitive.content }
-                    .getOrElse { raw.toString() }
-                contentBuilder.append(text)
-                onToken(text)
-            }
-            usage = response.usage
         }
 
         val msg = Message(

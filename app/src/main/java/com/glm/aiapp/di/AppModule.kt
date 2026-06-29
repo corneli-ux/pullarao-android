@@ -66,6 +66,9 @@ object AppModule {
     fun provideGlmApi(retrofit: Retrofit): GlmApi = retrofit.create(GlmApi::class.java)
 
     @Provides @Singleton
+    fun providePlatformClient(): com.glm.aiapp.data.api.PlatformClient = com.glm.aiapp.data.api.PlatformClient()
+
+    @Provides @Singleton
     fun provideStreamingChatClient(client: OkHttpClient, json: Json) =
         StreamingChatClient(client, json)
 
@@ -88,12 +91,16 @@ object AppModule {
 
     @Provides @Singleton
     fun provideVisionRepository(
-        api: GlmApi, settings: SettingsRepository, json: Json
-    ): VisionRepository = VisionRepositoryImpl(api, settings, json)
+        platform: com.glm.aiapp.data.api.PlatformClient,
+        settings: SettingsRepository
+    ): VisionRepository = VisionRepositoryImpl(platform, settings)
 
     @Provides @Singleton
-    fun provideImageRepository(api: GlmApi, db: AppDatabase): ImageRepository =
-        ImageRepositoryImpl(api, db)
+    fun provideImageRepository(
+        platform: com.glm.aiapp.data.api.PlatformClient,
+        db: AppDatabase,
+        settings: SettingsRepository
+    ): ImageRepository = ImageRepositoryImpl(platform, db, settings)
 
     @Provides @Singleton
     fun provideVideoRepository(api: GlmApi, db: AppDatabase): VideoRepository =
@@ -104,11 +111,16 @@ object AppModule {
         SpeechRepositoryImpl(api, db)
 
     @Provides @Singleton
-    fun provideSearchRepository(api: GlmApi): SearchRepository = SearchRepositoryImpl(api)
+    fun provideSearchRepository(
+        platform: com.glm.aiapp.data.api.PlatformClient,
+        settings: SettingsRepository
+    ): SearchRepository = SearchRepositoryImpl(platform, settings)
 
     @Provides @Singleton
-    fun providePageReaderRepository(api: GlmApi): PageReaderRepository =
-        PageReaderRepositoryImpl(api)
+    fun providePageReaderRepository(
+        platform: com.glm.aiapp.data.api.PlatformClient,
+        settings: SettingsRepository
+    ): PageReaderRepository = PageReaderRepositoryImpl(platform, settings)
 
     @Provides @Singleton
     fun provideFineTuneRepository(db: AppDatabase): FineTuneRepository =

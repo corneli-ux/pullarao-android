@@ -1,27 +1,30 @@
 package com.glm.aiapp.data.repository
 
-import com.glm.aiapp.data.api.GlmApi
+import com.glm.aiapp.data.api.PlatformClient
 import com.glm.aiapp.domain.model.SearchResult
 import com.glm.aiapp.domain.repository.SearchRepository
+import com.glm.aiapp.domain.repository.SettingsRepository
+import kotlinx.coroutines.flow.first
 import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
 class SearchRepositoryImpl @Inject constructor(
-    private val api: GlmApi
+    private val platform: PlatformClient,
+    private val settingsRepo: SettingsRepository
 ) : SearchRepository {
 
     override suspend fun search(query: String, num: Int, recencyDays: Int): List<SearchResult> {
-        val response = api.webSearch(
-            mapOf("query" to query, "num" to num, "recency_days" to recencyDays)
-        )
-        return response.data.map { item ->
+        val s = settingsRepo.settings.first()
+        if (s.sessionToken.isBlank()) error("Not signed in. Open Settings → Account → Sign in.")
+        val hits = platform.webSearch(s.platformUrl, s.sessionToken, query, num, recencyDays)
+        return hits.map {
             SearchResult(
-                title = item.title,
-                url = item.link,
-                snippet = item.snippet,
-                source = item.source,
-                publishedDate = item.publishDate
+                title = it.title,
+                url = it.url,
+                snippet = it.snippet,
+                source = it.source,
+                publishedDate = it.publishedDate
             )
         }
     }

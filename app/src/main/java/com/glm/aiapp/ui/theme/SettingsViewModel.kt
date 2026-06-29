@@ -24,8 +24,9 @@ class SettingsViewModel @Inject constructor(
         initialValue = null
     )
 
-    fun updateApiKey(key: String) = viewModelScope.launch { repo.updateApiKey(key) }
-    fun updateBaseUrl(url: String) = viewModelScope.launch { repo.updateBaseUrl(url) }
+    fun updatePlatformUrl(url: String) = viewModelScope.launch { repo.updatePlatformUrl(url) }
+    fun setSession(token: String, email: String, name: String) = viewModelScope.launch { repo.setSession(token, email, name) }
+    fun clearSession() = viewModelScope.launch { repo.clearSession() }
     fun updateChatParams(params: ChatParams) = viewModelScope.launch { repo.updateChatParams(params) }
     fun updateTheme(mode: ThemeMode) = viewModelScope.launch { repo.updateThemeMode(mode) }
 }

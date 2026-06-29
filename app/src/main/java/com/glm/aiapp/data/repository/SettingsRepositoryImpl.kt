@@ -14,8 +14,9 @@ class SettingsRepositoryImpl @Inject constructor(
 
     override val settings = store.settings
 
-    override suspend fun updateApiKey(key: String) { store.updateApiKey(key) }
-    override suspend fun updateBaseUrl(url: String) { store.updateBaseUrl(url) }
+    override suspend fun updatePlatformUrl(url: String) { store.updatePlatformUrl(url) }
+    override suspend fun setSession(token: String, email: String, name: String) { store.setSession(token, email, name) }
+    override suspend fun clearSession() { store.clearSession() }
     override suspend fun updateChatParams(params: ChatParams) { store.updateChatParams(params) }
     override suspend fun updateThemeMode(mode: ThemeMode) { store.updateThemeMode(mode) }
 }

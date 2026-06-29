@@ -66,8 +66,9 @@ interface FineTuneRepository {
 
 interface SettingsRepository {
     val settings: Flow<AppSettings>
-    suspend fun updateApiKey(key: String)
-    suspend fun updateBaseUrl(url: String)
+    suspend fun updatePlatformUrl(url: String)
+    suspend fun setSession(token: String, email: String, name: String)
+    suspend fun clearSession()
     suspend fun updateChatParams(params: ChatParams)
     suspend fun updateThemeMode(mode: ThemeMode)
 }
