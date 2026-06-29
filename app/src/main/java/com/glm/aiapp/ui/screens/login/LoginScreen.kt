@@ -78,7 +78,7 @@ fun LoginScreen(vm: LoginViewModel = hiltViewModel()) {
     }
 
     fun launchGoogleSignIn() {
-        val webClientId = "714767483567.apps.googleusercontent.com"
+        val webClientId = "714767483567-jgo1ls597k3gqs7pcu97j941rndrs9bh.apps.googleusercontent.com"
         Log.d("LoginScreen", "Launching Google Sign-In with webClientId=$webClientId")
 
         val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
