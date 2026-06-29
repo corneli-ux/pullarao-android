@@ -47,10 +47,30 @@ fun ChatScreen(vm: ChatViewModel = hiltViewModel()) {
     }
 
     Column(Modifier.fillMaxSize()) {
+        // API key setup nudge
+        val apiKey = settings?.apiKey?.trim().orEmpty()
+        if (apiKey.isBlank()) {
+            Surface(
+                color = MaterialTheme.colorScheme.secondaryContainer,
+                modifier = Modifier.fillMaxWidth().padding(12.dp),
+                shape = androidx.compose.foundation.shape.RoundedCornerShape(12.dp)
+            ) {
+                Column(Modifier.padding(12.dp)) {
+                    Text("⚠️ API key required", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSecondaryContainer)
+                    Spacer(Modifier.height(4.dp))
+                    Text(
+                        "Open Settings → Connection → API key and paste your GLM API key. Get one at open.bigmodel.cn/usercenter/apikeys",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSecondaryContainer
+                    )
+                }
+            }
+        }
+
         if (activeConversation == null && conversations.isEmpty()) {
             EmptyState(
                 title = "Start a conversation",
-                subtitle = "Ask anything — GLM streams responses in real time. Tap + to begin.",
+                subtitle = "Ask anything — Pullarao 1 streams responses in real time. Tap + to begin.",
                 modifier = Modifier.weight(1f)
             )
         } else {
