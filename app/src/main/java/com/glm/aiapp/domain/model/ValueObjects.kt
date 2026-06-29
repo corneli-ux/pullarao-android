@@ -5,11 +5,11 @@ package com.glm.aiapp.domain.model
  */
 
 enum class ChatModel(val id: String, val label: String, val description: String) {
-    GLM_4_6("glm-4.6", "GLM-4.6", "Latest flagship — best reasoning, multimodal-aware"),
+    GLM_4_6("glm-4.6", "Pullarao 1", "Latest flagship — best reasoning, multimodal-aware"),
     GLM_4_5("glm-4.5", "GLM-4.5", "Balanced quality and speed"),
-    GLM_4_PLUS("glm-4-plus", "GLM-4-Plus", "Long-context, stable for production"),
-    GLM_4_AIR("glm-4-air", "GLM-4-Air", "Cost-efficient, high-throughput"),
-    GLM_4_FLASH("glm-4-flash", "GLM-4-Flash", "Fastest inference, ideal for chat");
+    GLM_4_PLUS("glm-4-plus", "GLM 4 Plus", "Long-context, stable for production"),
+    GLM_4_AIR("glm-4-air", "GLM 4 Air", "Cost-efficient, high-throughput"),
+    GLM_4_FLASH("glm-4-flash", "GLM 4 Flash", "Fastest inference, ideal for chat");
 
     companion object {
         fun fromId(id: String?): ChatModel = entries.firstOrNull { it.id == id } ?: GLM_4_6

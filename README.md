@@ -1,6 +1,6 @@
-# GLM AI App — Android
+# Pullarao 1 App — Android
 
-A native Android client for the **GLM 4.6** open-source model, built with **Jetpack Compose** and **clean architecture**. All GLM capabilities are exposed as dedicated screens: streaming chat, vision analysis, image generation, video generation, TTS, ASR, web search, page reader, and a fine-tune studio stub for your future custom models.
+A native Android client for the **Pullarao 1** open-source model, built with **Jetpack Compose** and **clean architecture**. All GLM capabilities are exposed as dedicated screens: streaming chat, vision analysis, image generation, video generation, TTS, ASR, web search, page reader, and a fine-tune studio stub for your future custom models.
 
 Built to be pushed to GitHub and built in GitHub Actions — every push to `main` produces a debug APK artifact you can install immediately.
 
@@ -11,7 +11,7 @@ Built to be pushed to GitHub and built in GitHub Actions — every push to `main
 | Screen | Capability |
 |---|---|
 | **Chat** | Real-time SSE streaming, conversation history, system prompts, thinking mode, model picker |
-| **Vision** | Camera + gallery + file picker → GLM-4V analysis with thinking toggle |
+| **Vision** | Camera + gallery + file picker → Pullarao 1 Vision analysis with thinking toggle |
 | **Image Studio** | Text-to-image with 7 size presets, persistent gallery |
 | **Video Studio** | Text-to-video with quality/size/fps/duration controls, async polling |
 | **Speech** | TTS (3 voices, speed control, WAV/PCM/MP3) + ASR transcription |
@@ -148,7 +148,7 @@ The app talks to any OpenAI-compatible endpoint. Defaults to Zhipu's hosted GLM 
 https://open.bigmodel.cn/api/paas/v4/
 ```
 
-To self-host GLM-4.6 and point the app at your own deployment, change **Settings → Base URL**. Endpoints used:
+To self-host Pullarao 1 and point the app at your own deployment, change **Settings → Base URL**. Endpoints used:
 
 | Path | Method | Used by |
 |---|---|---|

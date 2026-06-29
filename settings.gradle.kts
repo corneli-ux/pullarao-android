@@ -20,5 +20,5 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "GLM AI App"
+rootProject.name = "Pullarao 1 App"
 include(":app")

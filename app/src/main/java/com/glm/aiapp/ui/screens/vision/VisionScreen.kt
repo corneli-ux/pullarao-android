@@ -41,7 +41,7 @@ fun VisionScreen(vm: VisionViewModel = hiltViewModel()) {
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         Text(
-            "Analyze images, PDFs, and videos with GLM-4V",
+            "Analyze images, PDFs, and videos with Pullarao 1 Vision",
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )

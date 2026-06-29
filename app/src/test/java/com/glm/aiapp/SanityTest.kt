@@ -14,6 +14,6 @@ class SanityTest {
     fun `string concatenation works`() {
         val a = "GLM"
         val b = "AI"
-        assertThat("$a $b App").isEqualTo("GLM AI App")
+        assertThat("$a $b App").isEqualTo("Pullarao 1 App")
     }
 }

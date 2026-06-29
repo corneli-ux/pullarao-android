@@ -143,9 +143,9 @@ fun SettingsScreen(vm: SettingsViewModel = hiltViewModel()) {
 
         // About
         SectionCard(title = "About") {
-            Text("GLM AI App", style = MaterialTheme.typography.titleSmall)
+            Text("Pullarao 1 App", style = MaterialTheme.typography.titleSmall)
             Text("Version 1.0.0", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            Text("Built with Jetpack Compose · Hilt · Room · Retrofit · GLM-4.6", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text("Built with Jetpack Compose · Hilt · Room · Retrofit · Pullarao 1", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
 }
