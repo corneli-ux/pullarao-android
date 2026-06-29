@@ -54,7 +54,7 @@ jobs:
       - name: Upload debug APK
         uses: actions/upload-artifact@v4
         with:
-          name: glm-ai-debug-apk
+          name: pullarao-android-debug-apk
           path: app/build/outputs/apk/debug/*.apk
           retention-days: 30
           if-no-files-found: error
