@@ -1,6 +1,7 @@
 package com.glm.aiapp.ui.screens.login
 
 import android.app.Activity
+import android.util.Log
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.*
@@ -41,40 +42,71 @@ fun LoginScreen(vm: LoginViewModel = hiltViewModel()) {
     val googleSignInLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.StartActivityForResult()
     ) { result ->
-        if (result.resultCode == Activity.RESULT_OK && result.data != null) {
-            try {
-                val account = GoogleSignIn.getSignedInAccountFromIntent(result.data)
-                    .getResult(ApiException::class.java)
-                val idToken = account?.idToken
-                if (idToken != null) {
-                    // Send Google ID token directly to platform — platform verifies it
-                    vm.loginWithGoogle(idToken)
-                } else {
-                    vm.setError("Google returned no ID token. The Web Client ID may be wrong. Check that Google Sign-In is enabled in Firebase Console and the SHA-1 fingerprint is added.")
-                }
-            } catch (e: ApiException) {
-                val msg = when (e.statusCode) {
-                    10 -> "Google Sign-In config error (DEVELOPER_ERROR). Check: 1) package name is com.glm.aiapp, 2) SHA-1 is in Firebase Console"
-                    12500 -> "Google Play services error. Update Google Play services on your device."
-                    12501 -> "Sign-in cancelled"
-                    else -> "Google Sign-In error (code ${e.statusCode}): ${e.message}"
-                }
-                vm.setError(msg)
+        Log.d("LoginScreen", "Google Sign-In result: code=${result.resultCode}, data=${result.data != null}")
+
+        // Handle ALL result codes — not just RESULT_OK
+        if (result.data == null) {
+            vm.setError("Google Sign-In returned no data. Try email login instead.")
+            return@rememberLauncherForActivityResult
+        }
+
+        try {
+            val account = GoogleSignIn.getSignedInAccountFromIntent(result.data)
+                .getResult(ApiException::class.java)
+            Log.d("LoginScreen", "Got account: ${account?.email}, idToken=${account?.idToken != null}")
+
+            val idToken = account?.idToken
+            if (idToken != null) {
+                vm.loginWithGoogle(idToken)
+            } else {
+                vm.setError("Google returned no ID token. This means the Web Client ID (714767483567.apps.googleusercontent.com) is not registered as a Web Application OAuth client in Google Cloud Console. Go to console.cloud.google.com → APIs & Services → Credentials → check the Web Application client ID, then update LoginScreen.kt line 68.")
             }
+        } catch (e: ApiException) {
+            Log.e("LoginScreen", "Google Sign-In ApiException", e)
+            val msg = when (e.statusCode) {
+                10 -> "DEVELOPER_ERROR (code 10). The Web Client ID or SHA-1 is wrong. Go to console.cloud.google.com → APIs & Services → Credentials and check: 1) there's a Web Application OAuth client with ID 714767483567.apps.googleusercontent.com, 2) the Android OAuth client has package com.glm.aiapp and SHA-1 88:3F:61:28:7B:28:90:28:67:65:A9:61:9E:A3:C1:5B:25:B0:84:2D"
+                12500 -> "Google Play services error (code 12500). Update Google Play Services on your device."
+                12501 -> "Sign-in cancelled."
+                7 -> "Network error. Check your internet connection."
+                else -> "Google Sign-In failed (code ${e.statusCode}): ${e.message}"
+            }
+            vm.setError(msg)
+        } catch (e: Exception) {
+            Log.e("LoginScreen", "Google Sign-In unexpected error", e)
+            vm.setError("Unexpected error: ${e.message}")
         }
     }
 
     fun launchGoogleSignIn() {
         val webClientId = "714767483567.apps.googleusercontent.com"
+        Log.d("LoginScreen", "Launching Google Sign-In with webClientId=$webClientId")
 
         val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
             .requestIdToken(webClientId)
             .requestEmail()
             .build()
         val client = GoogleSignIn.getClient(context, gso)
-        client.signOut().addOnCompleteListener {
-            googleSignInLauncher.launch(client.signInIntent)
-        }
+        // Sign out first so account picker shows
+        client.signOut()
+            .addOnCompleteListener { task ->
+                if (task.isSuccessful) {
+                    Log.d("LoginScreen", "Sign-out successful, launching sign-in intent")
+                    try {
+                        googleSignInLauncher.launch(client.signInIntent)
+                    } catch (e: Exception) {
+                        Log.e("LoginScreen", "Failed to launch sign-in intent", e)
+                        vm.setError("Failed to start Google Sign-In: ${e.message}")
+                    }
+                } else {
+                    Log.e("LoginScreen", "Sign-out failed", task.exception)
+                    // Try launching anyway — sign-out failure shouldn't block sign-in
+                    try {
+                        googleSignInLauncher.launch(client.signInIntent)
+                    } catch (e: Exception) {
+                        vm.setError("Failed to start Google Sign-In: ${e.message}")
+                    }
+                }
+            }
     }
 
     val infiniteTransition = rememberInfiniteTransition(label = "bg")
@@ -180,7 +212,7 @@ fun LoginScreen(vm: LoginViewModel = hiltViewModel()) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         OutlinedTextField(
                             value = state.email,
-                            onValueChange = vm::setEmail,
+                            onValueChange = { vm.setEmail(it) },
                             modifier = Modifier.fillMaxWidth(),
                             shape = RoundedCornerShape(16.dp),
                             label = { Text("Email") },
@@ -191,7 +223,7 @@ fun LoginScreen(vm: LoginViewModel = hiltViewModel()) {
                         Spacer(Modifier.height(12.dp))
                         OutlinedTextField(
                             value = state.password,
-                            onValueChange = vm::setPassword,
+                            onValueChange = { vm.setPassword(it) },
                             modifier = Modifier.fillMaxWidth(),
                             shape = RoundedCornerShape(16.dp),
                             label = { Text("Password") },
@@ -211,7 +243,7 @@ fun LoginScreen(vm: LoginViewModel = hiltViewModel()) {
                         )
                         Spacer(Modifier.height(24.dp))
                         Button(
-                            onClick = vm::loginWithEmail,
+                            onClick = { vm.loginWithEmail() },
                             modifier = Modifier.fillMaxWidth().height(56.dp),
                             shape = RoundedCornerShape(16.dp),
                             colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF10B981), contentColor = Color.White),
@@ -231,12 +263,28 @@ fun LoginScreen(vm: LoginViewModel = hiltViewModel()) {
                 }
             }
 
-            // Error display
-            AnimatedVisibility(visible = state.error != null, enter = fadeIn() + expandVertically(), exit = fadeOut() + shrinkVertically()) {
-                state.error?.let { msg ->
-                    Spacer(Modifier.height(16.dp))
-                    Surface(color = Color(0xFFEF4444).copy(alpha = 0.15f), shape = RoundedCornerShape(12.dp), modifier = Modifier.fillMaxWidth()) {
-                        Text(msg, color = Color(0xFFFCA5A5), fontSize = 13.sp, modifier = Modifier.padding(12.dp), textAlign = TextAlign.Center)
+            // Error display — always visible when there's an error
+            state.error?.let { msg ->
+                Spacer(Modifier.height(16.dp))
+                Surface(
+                    color = Color(0xFFEF4444).copy(alpha = 0.2f),
+                    shape = RoundedCornerShape(12.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Column(modifier = Modifier.padding(12.dp)) {
+                        Text(
+                            "⚠️ Error",
+                            color = Color(0xFFFCA5A5),
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Spacer(Modifier.height(4.dp))
+                        Text(
+                            msg,
+                            color = Color(0xFFFCA5A5),
+                            fontSize = 12.sp,
+                            lineHeight = 16.sp
+                        )
                     }
                 }
             }
