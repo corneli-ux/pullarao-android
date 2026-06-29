@@ -66,39 +66,31 @@ class ChatRepositoryImpl @Inject constructor(
             ?: error("Conversation $conversationId not found")
         val history = db.messageDao().observeByConversation(conversationId).first()
 
-        val messages: MutableList<ChatMessage> = mutableListOf()
-        if (conv.systemPrompt.isNotBlank()) {
-            messages += ChatMessage("system", JsonPrimitive(conv.systemPrompt))
-        }
-        history.forEach { m ->
-            messages += ChatMessage(m.role.lowercase(), JsonPrimitive(m.content))
-        }
-
-        // Build the request we'll send to the platform's GLM proxy
-        val platformUrl = settings.platformUrl.trimEnd('/')
-        val url = "$platformUrl/api/glm/chat"
-        val messagesJson = buildJsonArray {
-            messages.forEach { m ->
-                add(buildJsonObject {
-                    put("role", JsonPrimitive(m.role))
-                    put("content", JsonPrimitive(m.content))
-                })
+        // Build the messages array using org.json (simpler than kotlinx.serialization for this case)
+        val messagesJson = org.json.JSONArray().apply {
+            if (conv.systemPrompt.isNotBlank()) {
+                put(org.json.JSONObject().put("role", "system").put("content", conv.systemPrompt))
+            }
+            history.forEach { m ->
+                put(org.json.JSONObject().put("role", m.role.lowercase()).put("content", m.content))
             }
         }
-        val requestBody = buildJsonObject {
-            put("messages", messagesJson)
-            put("temperature", JsonPrimitive(params.temperature.toDouble()))
-            put("max_tokens", JsonPrimitive(params.maxTokens))
-        }
-        val payload = json.encodeToString(JsonObject.serializer(), requestBody)
+        val requestBody = org.json.JSONObject()
+            .put("messages", messagesJson)
+            .put("temperature", params.temperature.toDouble())
+            .put("max_tokens", params.maxTokens)
+            .toString()
+
+        val platformUrl = settings.platformUrl.trimEnd('/')
+        val url = "$platformUrl/api/glm/chat"
 
         val contentBuilder = StringBuilder()
         val thinkingBuilder = StringBuilder()
-        var usage: Usage? = null
 
         // The platform returns SSE events: { "type": "token"|"done"|"error", "content"|"message" }
-        streamClient.streamAuthorized(url, settings.sessionToken, payload).collect { evt ->
-            when (evt.optString("type")) {
+        streamClient.streamAuthorized(url, settings.sessionToken, requestBody).collect { evt ->
+            val type = evt.optString("type", "")
+            when (type) {
                 "token" -> {
                     val tok = evt.optString("content", "")
                     if (tok.isNotEmpty()) { onToken(tok); contentBuilder.append(tok) }
@@ -114,7 +106,7 @@ class ChatRepositoryImpl @Inject constructor(
             role = Role.ASSISTANT,
             content = contentBuilder.toString(),
             thinking = thinkingBuilder.toString().ifBlank { null },
-            tokens = usage?.totalTokens,
+            tokens = null,
             createdAt = System.currentTimeMillis()
         )
         appendMessage(conversationId, msg)

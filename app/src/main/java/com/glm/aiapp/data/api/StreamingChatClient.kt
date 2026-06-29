@@ -64,12 +64,12 @@ class StreamingChatClient @Inject constructor(
 
     /**
      * SSE reader for the platform proxy. Emits each `data: {...}` line as a
-     * parsed JsonObject. The proxy's event shape is:
+     * parsed org.json.JSONObject. The proxy's event shape is:
      *   { "type": "token", "content": "..." }
      *   { "type": "done" }
      *   { "type": "error", "message": "..." }
      */
-    fun streamAuthorized(url: String, sessionToken: String, payload: String): Flow<JsonObject> = channelFlow {
+    fun streamAuthorized(url: String, sessionToken: String, payload: String): Flow<org.json.JSONObject> = channelFlow {
         val request = Request.Builder()
             .url(url)
             .header("Authorization", "Bearer $sessionToken")
@@ -96,7 +96,7 @@ class StreamingChatClient @Inject constructor(
                     if (line.isBlank() || !line.startsWith("data:")) continue
                     val data = line.removePrefix("data:").trim()
                     if (data == "[DONE]") break
-                    val obj = runCatching { json.decodeFromString(JsonObject.serializer(), data) }.getOrNull()
+                    val obj = runCatching { org.json.JSONObject(data) }.getOrNull()
                     if (obj != null) send(obj)
                 }
             }
