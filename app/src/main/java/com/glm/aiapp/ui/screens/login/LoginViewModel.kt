@@ -101,8 +101,16 @@ class LoginViewModel @Inject constructor(
                     client.newCall(req).execute().use { res ->
                         val body = res.body?.string() ?: ""
                         if (!res.isSuccessful) {
-                            val msg = JSONObject(body).optString("error", "Google login failed (${res.code})")
+                            val msg = if (body.isNotBlank()) {
+                                try { JSONObject(body).optString("error", "Google login failed (${res.code})") }
+                                catch (_: Exception) { "Google login failed (HTTP ${res.code}, body: ${body.take(100)})" }
+                            } else {
+                                "Google login failed (HTTP ${res.code}, empty response from server)"
+                            }
                             throw RuntimeException(msg)
+                        }
+                        if (body.isBlank()) {
+                            throw RuntimeException("Server returned empty response")
                         }
                         JSONObject(body)
                     }
