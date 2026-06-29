@@ -16,6 +16,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.*
 import androidx.compose.ui.draw.*
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.*
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -24,40 +25,45 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.*
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.glm.aiapp.R
-import com.google.android.gms.auth.api.identity.Identity
-import com.google.android.gms.auth.api.identity.SignInCredential
-import kotlinx.coroutines.launch
+import com.google.android.gms.auth.api.signin.GoogleSignIn
+import com.google.android.gms.auth.api.signin.GoogleSignInOptions
+import com.google.android.gms.common.api.ApiException
 
-@OptIn(ExperimentalAnimationApi::class)
 @Composable
 fun LoginScreen(vm: LoginViewModel = hiltViewModel()) {
     val state by vm.state.collectAsStateWithLifecycle()
     val context = LocalContext.current
-    val scope = rememberCoroutineScope()
     var showEmailForm by remember { mutableStateOf(false) }
     var showPassword by remember { mutableStateOf(false) }
 
-    // Google Sign-In launcher using Identity API
+    // Google Sign-In launcher
     val googleSignInLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.StartIntentSenderForResult()
+        contract = ActivityResultContracts.StartActivityForResult()
     ) { result ->
-        if (result.resultCode == Activity.RESULT_OK) {
+        if (result.resultCode == Activity.RESULT_OK && result.data != null) {
             try {
-                val credential = Identity.getSignInClient(context).getSignInCredentialFromIntent(result.data)
-                val idToken = credential.googleIdToken
+                val account = GoogleSignIn.getSignedInAccountFromIntent(result.data)
+                    .getResult(ApiException::class.java)
+                val idToken = account?.idToken
                 if (idToken != null) {
                     vm.loginWithGoogle(idToken)
-                } else {
-                    vm.clearError()
                 }
-            } catch (e: Exception) {
-                // Ignore — user cancelled or error
+            } catch (_: Exception) {
+                // User cancelled or error
             }
         }
     }
 
-    // Animated entrance
+    fun launchGoogleSignIn() {
+        val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
+            .requestIdToken("1035738900117-7n0vqjq8e9r8m4f2k2k2k2k2k2k2k2k2.apps.googleusercontent.com")
+            .requestEmail()
+            .build()
+        val client = GoogleSignIn.getClient(context, gso)
+        googleSignInLauncher.launch(client.signInIntent)
+    }
+
+    // Animated gradient background
     val infiniteTransition = rememberInfiniteTransition(label = "bg")
     val gradientOffset by infiniteTransition.animateFloat(
         initialValue = 0f,
@@ -80,28 +86,17 @@ fun LoginScreen(vm: LoginViewModel = hiltViewModel()) {
                         Color(0xFF0F766E),
                         Color(0xFF134E4A)
                     ),
-                    start = Offset(0f, 0f + gradientOffset * 300),
+                    start = Offset(0f, gradientOffset * 300),
                     end = Offset(1000f, 1500f + gradientOffset * 300)
                 )
             )
     ) {
         // Floating gradient orbs
-        Orb(
-            modifier = Modifier.offset(x = (-50).dp, y = 100.dp),
-            color = Color(0xFF10B981).copy(alpha = 0.3f),
-            size = 200.dp
-        )
-        Orb(
-            modifier = Modifier.offset(x = 250.dp, y = 400.dp),
-            color = Color(0xFFF59E0B).copy(alpha = 0.2f),
-            size = 250.dp
-        )
+        Orb(modifier = Modifier.offset(x = (-50).dp, y = 100.dp), color = Color(0xFF10B981).copy(alpha = 0.3f), size = 200.dp)
+        Orb(modifier = Modifier.offset(x = 250.dp, y = 400.dp), color = Color(0xFFF59E0B).copy(alpha = 0.2f), size = 250.dp)
 
-        // Content
         Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(horizontal = 28.dp),
+            modifier = Modifier.fillMaxSize().padding(horizontal = 28.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
@@ -110,40 +105,21 @@ fun LoginScreen(vm: LoginViewModel = hiltViewModel()) {
                 modifier = Modifier
                     .size(72.dp)
                     .clip(RoundedCornerShape(20.dp))
-                    .background(
-                        Brush.linearGradient(
-                            colors = listOf(Color(0xFF10B981), Color(0xFF0F766E))
-                        )
-                    )
+                    .background(Brush.linearGradient(colors = listOf(Color(0xFF10B981), Color(0xFF0F766E))))
                     .shadow(8.dp, RoundedCornerShape(20.dp)),
                 contentAlignment = Alignment.Center
             ) {
-                Text(
-                    "P1",
-                    color = Color.White,
-                    fontSize = 24.sp,
-                    fontWeight = FontWeight.Bold
-                )
+                Text("P1", color = Color.White, fontSize = 24.sp, fontWeight = FontWeight.Bold)
             }
 
             Spacer(Modifier.height(20.dp))
 
-            // Title
-            Text(
-                "Pullarao 1",
-                color = Color.White,
-                fontSize = 32.sp,
-                fontWeight = FontWeight.Bold
-            )
-            Text(
-                "Build apps with AI",
-                color = Color.White.copy(alpha = 0.7f),
-                fontSize = 15.sp
-            )
+            Text("Pullarao 1", color = Color.White, fontSize = 32.sp, fontWeight = FontWeight.Bold)
+            Text("Build apps with AI", color = Color.White.copy(alpha = 0.7f), fontSize = 15.sp)
 
             Spacer(Modifier.height(48.dp))
 
-            // Animated content switch
+            // Animated content
             AnimatedContent(
                 targetState = showEmailForm,
                 transitionSpec = {
@@ -153,56 +129,30 @@ fun LoginScreen(vm: LoginViewModel = hiltViewModel()) {
                 label = "form"
             ) { showEmail ->
                 if (!showEmail) {
-                    // Primary: Google sign-in
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         // Google button
-                        GoogleButton(
+                        OutlinedButton(
+                            onClick = { launchGoogleSignIn() },
                             enabled = !state.isSubmitting,
-                            onClick = {
-                                scope.launch {
-                                    try {
-                                        val signInClient = Identity.getSignInClient(context)
-                                        // Build sign-in request — request ID token
-                                        val request = com.google.android.gms.auth.api.identity.SignInRequest.builder()
-                                            .setIdTokenRequest(
-                                                com.google.android.gms.auth.api.identity.IdTokenRequestOptions.builder()
-                                                    .setSupported(true)
-                                                    .setServerClientId("1035738900117-7n0vqjq8e9r8m4f2k2k2k2k2k2k2k2k2.apps.googleusercontent.com")
-                                                    .build()
-                                            )
-                                            .build()
-                                        val intentSender = signInClient.getSignInIntent(request)
-                                        val intentSenderRequest = android.content.IntentSenderRequest.Builder(intentSender).build()
-                                        googleSignInLauncher.launch(intentSenderRequest)
-                                    } catch (e: Exception) {
-                                        // Fallback — might not have Google Play services
-                                        showEmailForm = true
-                                    }
-                                }
-                            }
-                        )
+                            modifier = Modifier.fillMaxWidth().height(56.dp),
+                            shape = RoundedCornerShape(16.dp),
+                            colors = ButtonDefaults.outlinedButtonColors(
+                                containerColor = Color.White,
+                                contentColor = Color(0xFF1F2937)
+                            )
+                        ) {
+                            Text("G", color = Color(0xFF4285F4), fontSize = 20.sp, fontWeight = FontWeight.Bold)
+                            Spacer(Modifier.width(10.dp))
+                            Text("Continue with Google", fontSize = 15.sp, fontWeight = FontWeight.Medium)
+                        }
 
                         Spacer(Modifier.height(16.dp))
 
                         // Divider
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            HorizontalDivider(
-                                modifier = Modifier.weight(1f),
-                                color = Color.White.copy(alpha = 0.2f)
-                            )
-                            Text(
-                                "or",
-                                color = Color.White.copy(alpha = 0.5f),
-                                fontSize = 12.sp,
-                                modifier = Modifier.padding(horizontal = 12.dp)
-                            )
-                            HorizontalDivider(
-                                modifier = Modifier.weight(1f),
-                                color = Color.White.copy(alpha = 0.2f)
-                            )
+                        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
+                            HorizontalDivider(modifier = Modifier.weight(1f), color = Color.White.copy(alpha = 0.2f))
+                            Text("or", color = Color.White.copy(alpha = 0.5f), fontSize = 12.sp, modifier = Modifier.padding(horizontal = 12.dp))
+                            HorizontalDivider(modifier = Modifier.weight(1f), color = Color.White.copy(alpha = 0.2f))
                         }
 
                         Spacer(Modifier.height(16.dp))
@@ -210,13 +160,9 @@ fun LoginScreen(vm: LoginViewModel = hiltViewModel()) {
                         // Email button
                         OutlinedButton(
                             onClick = { showEmailForm = true },
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(56.dp),
+                            modifier = Modifier.fillMaxWidth().height(56.dp),
                             shape = RoundedCornerShape(16.dp),
-                            colors = ButtonDefaults.outlinedButtonColors(
-                                contentColor = Color.White
-                            ),
+                            colors = ButtonDefaults.outlinedButtonColors(contentColor = Color.White),
                             border = BorderStroke(1.dp, Color.White.copy(alpha = 0.3f))
                         ) {
                             Icon(Icons.Filled.Email, contentDescription = null, modifier = Modifier.size(20.dp))
@@ -230,9 +176,7 @@ fun LoginScreen(vm: LoginViewModel = hiltViewModel()) {
                         OutlinedTextField(
                             value = state.email,
                             onValueChange = vm::setEmail,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(56.dp),
+                            modifier = Modifier.fillMaxWidth().height(56.dp),
                             shape = RoundedCornerShape(16.dp),
                             label = { Text("Email") },
                             singleLine = true,
@@ -247,15 +191,11 @@ fun LoginScreen(vm: LoginViewModel = hiltViewModel()) {
                                 cursorColor = Color(0xFF10B981)
                             )
                         )
-
                         Spacer(Modifier.height(12.dp))
-
                         OutlinedTextField(
                             value = state.password,
                             onValueChange = vm::setPassword,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(56.dp),
+                            modifier = Modifier.fillMaxWidth().height(56.dp),
                             shape = RoundedCornerShape(16.dp),
                             label = { Text("Password") },
                             singleLine = true,
@@ -264,7 +204,7 @@ fun LoginScreen(vm: LoginViewModel = hiltViewModel()) {
                             trailingIcon = {
                                 IconButton(onClick = { showPassword = !showPassword }) {
                                     Icon(
-                                        imageVector = if (showPassword) Icons.Filled.VisibilityOff else Icons.Filled.Visibility,
+                                        if (showPassword) Icons.Filled.VisibilityOff else Icons.Filled.Visibility,
                                         contentDescription = null,
                                         tint = Color.White.copy(alpha = 0.6f)
                                     )
@@ -280,34 +220,21 @@ fun LoginScreen(vm: LoginViewModel = hiltViewModel()) {
                                 cursorColor = Color(0xFF10B981)
                             )
                         )
-
                         Spacer(Modifier.height(20.dp))
-
                         Button(
                             onClick = vm::loginWithEmail,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(56.dp),
+                            modifier = Modifier.fillMaxWidth().height(56.dp),
                             shape = RoundedCornerShape(16.dp),
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = Color(0xFF10B981),
-                                contentColor = Color.White
-                            ),
+                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF10B981), contentColor = Color.White),
                             enabled = !state.isSubmitting && state.email.isNotBlank() && state.password.isNotBlank()
                         ) {
                             if (state.isSubmitting) {
-                                CircularProgressIndicator(
-                                    modifier = Modifier.size(20.dp),
-                                    strokeWidth = 2.dp,
-                                    color = Color.White
-                                )
+                                CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp, color = Color.White)
                             } else {
                                 Text("Sign in", fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
                             }
                         }
-
                         Spacer(Modifier.height(12.dp))
-
                         TextButton(onClick = { showEmailForm = false }) {
                             Text("← Back", color = Color.White.copy(alpha = 0.7f))
                         }
@@ -315,84 +242,28 @@ fun LoginScreen(vm: LoginViewModel = hiltViewModel()) {
                 }
             }
 
-            // Error message
-            AnimatedVisibility(
-                visible = state.error != null,
-                enter = fadeIn() + expandVertically(),
-                exit = fadeOut() + shrinkVertically()
-            ) {
+            // Error
+            AnimatedVisibility(visible = state.error != null, enter = fadeIn() + expandVertically(), exit = fadeOut() + shrinkVertically()) {
                 state.error?.let { msg ->
                     Spacer(Modifier.height(16.dp))
-                    Surface(
-                        color = Color(0xFFEF4444).copy(alpha = 0.15f),
-                        shape = RoundedCornerShape(12.dp),
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Text(
-                            msg,
-                            color = Color(0xFFFCA5A5),
-                            fontSize = 13.sp,
-                            modifier = Modifier.padding(12.dp),
-                            textAlign = TextAlign.Center
-                        )
+                    Surface(color = Color(0xFFEF4444).copy(alpha = 0.15f), shape = RoundedCornerShape(12.dp), modifier = Modifier.fillMaxWidth()) {
+                        Text(msg, color = Color(0xFFFCA5A5), fontSize = 13.sp, modifier = Modifier.padding(12.dp), textAlign = TextAlign.Center)
                     }
                 }
             }
 
-            Spacer(Modifier.height(32.dp))
+            // Loading overlay
+            if (state.isSubmitting) {
+                Spacer(Modifier.height(16.dp))
+                CircularProgressIndicator(modifier = Modifier.size(24.dp), strokeWidth = 2.dp, color = Color(0xFF10B981))
+            }
 
-            // Footer
+            Spacer(Modifier.height(32.dp))
             Text(
                 "By continuing you agree to our Terms\nand acknowledge our Privacy Policy",
-                color = Color.White.copy(alpha = 0.4f),
-                fontSize = 11.sp,
-                textAlign = TextAlign.Center,
-                lineHeight = 16.sp
+                color = Color.White.copy(alpha = 0.4f), fontSize = 11.sp, textAlign = TextAlign.Center, lineHeight = 16.sp
             )
         }
-    }
-}
-
-@Composable
-private fun GoogleButton(enabled: Boolean, onClick: () -> Unit) {
-    OutlinedButton(
-        onClick = onClick,
-        enabled = enabled,
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(56.dp),
-        shape = RoundedCornerShape(16.dp),
-        colors = ButtonDefaults.outlinedButtonColors(
-            containerColor = Color.White,
-            contentColor = Color(0xFF1F2937)
-        )
-    ) {
-        // Google "G" logo
-        Box(
-            modifier = Modifier.size(20.dp),
-            contentAlignment = Alignment.Center
-        ) {
-            Canvas(modifier = Modifier.fillMaxSize()) {
-                drawIntoCanvas {
-                    // Draw a simple "G" using colored arcs
-                    val w = size.width
-                    val h = size.height
-                    // Blue
-                    drawArc(
-                        color = Color(0xFF4285F4),
-                        startAngle = 0f,
-                        sweepAngle = 360f,
-                        useCenter = true,
-                        topLeft = Offset(0f, 0f),
-                        size = Size(w * 0.5f, h * 0.5f)
-                    )
-                }
-            }
-        }
-        // Use the official Google "G" SVG path via a simpler approach — just text
-        Text("G", color = Color(0xFF4285F4), fontSize = 18.sp, fontWeight = FontWeight.Bold)
-        Spacer(Modifier.width(10.dp))
-        Text("Continue with Google", fontSize = 15.sp, fontWeight = FontWeight.Medium)
     }
 }
 
@@ -402,12 +273,7 @@ private fun Orb(modifier: Modifier, color: Color, size: Dp) {
         modifier = modifier
             .size(size)
             .clip(CircleShape)
-            .background(
-                Brush.radialGradient(
-                    colors = listOf(color, Color.Transparent),
-                    radius = size.toPx() / 2
-                )
-            )
+            .background(Brush.radialGradient(colors = listOf(color, Color.Transparent)))
             .blur(40.dp)
     )
 }
