@@ -79,11 +79,14 @@ class ChatViewModel @Inject constructor(
     }
 
     private suspend fun sendAfterCreate(conversationId: String, text: String) {
-        val params = settings.value?.chatParams ?: ChatParams()
-        val sessionToken = settings.value?.sessionToken?.trim().orEmpty()
+        // Use .first() to WAIT for settings to load from DataStore.
+        // Using settings.value would be null on first launch (race condition).
+        val s = settingsRepo.settings.first()
+        val params = s.chatParams
+        val sessionToken = s.sessionToken.trim()
 
         if (sessionToken.isBlank()) {
-            _error.value = "Not signed in. Open Settings → Account → Sign in with your email and password to start chatting."
+            _error.value = "Not signed in. Open Settings → Account → Sign in."
             return
         }
 

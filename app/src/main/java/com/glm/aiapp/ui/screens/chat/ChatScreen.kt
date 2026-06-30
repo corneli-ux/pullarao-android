@@ -47,9 +47,10 @@ fun ChatScreen(vm: ChatViewModel = hiltViewModel()) {
     }
 
     Column(Modifier.fillMaxSize()) {
-        // Sign-in nudge
+        // Sign-in nudge — only show when settings have loaded AND token is blank.
+        // Don't show when settings is null (still loading from DataStore).
         val sessionToken = settings?.sessionToken?.trim().orEmpty()
-        if (sessionToken.isBlank()) {
+        if (settings != null && sessionToken.isBlank()) {
             Surface(
                 color = MaterialTheme.colorScheme.secondaryContainer,
                 modifier = Modifier.fillMaxWidth().padding(12.dp),
