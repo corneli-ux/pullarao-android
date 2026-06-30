@@ -101,7 +101,7 @@ class ChatRepositoryImpl @Inject constructor(
         val url = "$platformUrl/api/glm/chat-sync"
 
         // Make the HTTP call on IO dispatcher — the ENTIRE call including response parsing
-        val content = withContext(Dispatchers.IO) {
+        val (content, reasoning) = withContext(Dispatchers.IO) {
             val req = Request.Builder()
                 .url(url)
                 .header("Authorization", "Bearer ${settings.sessionToken}")
@@ -122,13 +122,11 @@ class ChatRepositoryImpl @Inject constructor(
                 }
                 if (body.isBlank()) error("Server returned empty response")
                 val json = JSONObject(body)
-                val content = json.optString("content", "")
-                val reasoning = json.optString("reasoning", "")
-                content to reasoning
+                val c = json.optString("content", "")
+                val r = json.optString("reasoning", "")
+                c to r
             }
         }
-
-        val (content, reasoning) = result
 
         if (content.isBlank()) error("Pullarao returned an empty response.")
 
