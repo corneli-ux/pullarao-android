@@ -144,6 +144,9 @@ dependencies {
     // Coil
     implementation(libs.coil.compose)
 
+    // Markdown rendering
+    implementation("com.github.jeziellago:compose-markdown:0.5.7")
+
     // Accompanist
     implementation(libs.accompanist.permissions)
 

@@ -16,15 +16,14 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.text.input.ImeAction
-import androidx.compose.ui.text.input.KeyboardCapitalization
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.glm.aiapp.domain.model.Message
 import com.glm.aiapp.domain.model.Role
-import com.glm.aiapp.ui.components.EmptyState
-import kotlinx.coroutines.launch
+import dev.jeziellago.compose.markdowntext.MarkdownText
 
 @Composable
 fun ChatScreen(vm: ChatViewModel = hiltViewModel()) {
@@ -38,42 +37,24 @@ fun ChatScreen(vm: ChatViewModel = hiltViewModel()) {
 
     var input by remember { mutableStateOf("") }
     val listState = rememberLazyListState()
-    val scope = rememberCoroutineScope()
 
-    // Auto-scroll on new messages or streaming updates
     LaunchedEffect(activeConversation?.messages?.size, streamingText) {
         val total = (activeConversation?.messages?.size ?: 0) + if (streamingText.isNotBlank()) 1 else 0
         if (total > 0) listState.animateScrollToItem(total - 1)
     }
 
     Column(Modifier.fillMaxSize()) {
-        // Sign-in nudge — only show when settings have loaded AND token is blank.
-        // Don't show when settings is null (still loading from DataStore).
-        val sessionToken = settings?.sessionToken?.trim().orEmpty()
-        if (settings != null && sessionToken.isBlank()) {
-            Surface(
-                color = MaterialTheme.colorScheme.secondaryContainer,
-                modifier = Modifier.fillMaxWidth().padding(12.dp),
-                shape = androidx.compose.foundation.shape.RoundedCornerShape(12.dp)
-            ) {
-                Column(Modifier.padding(12.dp)) {
-                    Text("⚠️ Sign in required", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSecondaryContainer)
+        // Chat messages
+        if (activeConversation == null && conversations.isEmpty()) {
+            Box(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text("💬", style = MaterialTheme.typography.displayMedium)
+                    Spacer(Modifier.height(8.dp))
+                    Text("Start a conversation with Pullarao 1", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurface)
                     Spacer(Modifier.height(4.dp))
-                    Text(
-                        "Open Settings → Account → Sign in with your email and password. New here? Create an account at pullarao-appforge.vercel.app/register",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSecondaryContainer
-                    )
+                    Text("Tap + to begin. Ask anything — code, ideas, analysis.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
-        }
-
-        if (activeConversation == null && conversations.isEmpty()) {
-            EmptyState(
-                title = "Start a conversation",
-                subtitle = "Ask anything — Pullarao 1 streams responses in real time. Tap + to begin.",
-                modifier = Modifier.weight(1f)
-            )
         } else {
             LazyColumn(
                 modifier = Modifier.weight(1f).fillMaxWidth().padding(horizontal = 12.dp),
@@ -86,10 +67,9 @@ fun ChatScreen(vm: ChatViewModel = hiltViewModel()) {
                 }
                 if (streamingText.isNotBlank() || streamingThinking.isNotBlank()) {
                     item {
-                        StreamingBubble(
-                            text = streamingText,
-                            thinking = streamingThinking,
-                            model = settings?.chatParams?.model?.label ?: "Pullarao 1"
+                        AssistantBubble(
+                            content = streamingText,
+                            thinking = streamingThinking
                         )
                     }
                 }
@@ -100,8 +80,8 @@ fun ChatScreen(vm: ChatViewModel = hiltViewModel()) {
         }
 
         error?.let { msg ->
-            Surface(color = MaterialTheme.colorScheme.errorContainer, modifier = Modifier.fillMaxWidth().padding(12.dp)) {
-                Text(msg, color = MaterialTheme.colorScheme.onErrorContainer, modifier = Modifier.padding(12.dp))
+            Surface(color = MaterialTheme.colorScheme.errorContainer, modifier = Modifier.fillMaxWidth().padding(12.dp), shape = RoundedCornerShape(12.dp)) {
+                Text(msg, color = MaterialTheme.colorScheme.onErrorContainer, modifier = Modifier.padding(12.dp), style = MaterialTheme.typography.bodySmall)
             }
         }
 
@@ -118,10 +98,10 @@ fun ChatScreen(vm: ChatViewModel = hiltViewModel()) {
                     value = input,
                     onValueChange = { input = it },
                     modifier = Modifier.weight(1f),
-                    placeholder = { Text("Message Pullarao…") },
+                    placeholder = { Text("Message Pullarao 1…") },
                     shape = RoundedCornerShape(24.dp),
                     maxLines = 5,
-                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send, capitalization = KeyboardCapitalization.Sentences),
+                    keyboardOptions = KeyboardOptions(imeAction = androidx.compose.ui.text.input.ImeAction.Send),
                     leadingIcon = { Icon(Icons.Filled.SmartToy, contentDescription = null) }
                 )
                 Spacer(Modifier.width(8.dp))
@@ -153,44 +133,67 @@ private fun MessageBubble(message: Message) {
         Surface(
             color = if (isUser) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant,
             shape = RoundedCornerShape(16.dp, 16.dp, 16.dp, if (isUser) 4.dp else 16.dp),
-            modifier = Modifier.widthIn(max = 320.dp)
+            modifier = Modifier.widthIn(max = 340.dp)
         ) {
             Column(Modifier.padding(12.dp)) {
                 message.thinking?.takeIf { it.isNotBlank() }?.let {
-                    Text("💭 Thinking", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    Spacer(Modifier.height(6.dp))
+                    ThinkingSection(it)
+                    Spacer(Modifier.height(8.dp))
                 }
-                Text(
-                    message.content,
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = if (isUser) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface
-                )
+                if (isUser) {
+                    Text(message.content, style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onPrimary)
+                } else {
+                    MarkdownText(
+                        markdown = message.content,
+                        style = MaterialTheme.typography.bodyLarge.copy(color = MaterialTheme.colorScheme.onSurface),
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
             }
         }
     }
 }
 
 @Composable
-private fun StreamingBubble(text: String, thinking: String, model: String) {
+private fun AssistantBubble(content: String, thinking: String) {
     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Start) {
         Surface(
             color = MaterialTheme.colorScheme.surfaceVariant,
             shape = RoundedCornerShape(16.dp, 16.dp, 16.dp, 4.dp),
-            modifier = Modifier.widthIn(max = 320.dp)
+            modifier = Modifier.widthIn(max = 340.dp)
         ) {
             Column(Modifier.padding(12.dp)) {
                 if (thinking.isNotBlank()) {
-                    Text("💭 Thinking", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    Text(thinking, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    Spacer(Modifier.height(6.dp))
+                    ThinkingSection(thinking)
+                    Spacer(Modifier.height(8.dp))
                 }
-                if (text.isNotBlank()) {
-                    Text(text, style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurface)
+                if (content.isNotBlank()) {
+                    MarkdownText(
+                        markdown = content,
+                        style = MaterialTheme.typography.bodyLarge.copy(color = MaterialTheme.colorScheme.onSurface),
+                        modifier = Modifier.fillMaxWidth()
+                    )
                 }
-                Spacer(Modifier.height(4.dp))
-                Text(model, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
             }
+        }
+    }
+}
+
+@Composable
+private fun ThinkingSection(thinking: String) {
+    Surface(
+        color = MaterialTheme.colorScheme.secondaryContainer,
+        shape = RoundedCornerShape(8.dp),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Column(Modifier.padding(8.dp)) {
+            Text("💭 Thinking", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSecondaryContainer)
+            Spacer(Modifier.height(4.dp))
+            Text(
+                thinking,
+                style = MaterialTheme.typography.bodySmall.copy(fontFamily = FontFamily.Monospace),
+                color = MaterialTheme.colorScheme.onSecondaryContainer
+            )
         }
     }
 }
@@ -198,17 +201,8 @@ private fun StreamingBubble(text: String, thinking: String, model: String) {
 @Composable
 private fun TypingIndicator() {
     Row(Modifier.fillMaxWidth().padding(8.dp), horizontalArrangement = Arrangement.Start) {
-        Surface(
-            color = MaterialTheme.colorScheme.surfaceVariant,
-            shape = RoundedCornerShape(16.dp)
-        ) {
-            Row(Modifier.padding(12.dp), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                repeat(3) { i ->
-                    Box(
-                        Modifier.size(8.dp).clip(RoundedCornerShape(50)).background(MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f))
-                    )
-                }
-            }
+        Surface(color = MaterialTheme.colorScheme.surfaceVariant, shape = RoundedCornerShape(16.dp)) {
+            Text("Pullarao 1 is thinking…", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(12.dp))
         }
     }
 }
