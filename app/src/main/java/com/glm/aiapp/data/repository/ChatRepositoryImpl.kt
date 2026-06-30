@@ -79,7 +79,7 @@ class ChatRepositoryImpl @Inject constructor(
         }
         val requestBody = org.json.JSONObject()
             .put("messages", messagesJson)
-            .put("temperature", params.temperature.toDouble())
+            .put("temperature", Math.round(params.temperature * 100.0) / 100.0)
             .put("max_tokens", params.maxTokens)
             .toString()
 
