@@ -94,7 +94,7 @@ class ChatRepositoryImpl @Inject constructor(
         val requestBody = JSONObject()
             .put("messages", messagesJson)
             .put("temperature", Math.round(params.temperature * 100.0) / 100.0)
-            .put("max_tokens", params.maxTokens)
+            .put("max_tokens", 8192)
             .toString()
 
         val platformUrl = settings.platformUrl.trimEnd('/')
@@ -122,13 +122,18 @@ class ChatRepositoryImpl @Inject constructor(
                 }
                 if (body.isBlank()) error("Server returned empty response")
                 val json = JSONObject(body)
-                json.optString("content", "")
+                val content = json.optString("content", "")
+                val reasoning = json.optString("reasoning", "")
+                Pair(content, reasoning)
             }
         }
 
         if (content.isBlank()) error("Pullarao returned an empty response.")
 
-        // Emit the full response as a single token — no simulated streaming, no Thread.sleep
+        // Show reasoning first (if available), then the response
+        if (reasoning.isNotBlank()) {
+            onThinking(reasoning)
+        }
         onToken(content)
 
         // Save assistant message to DB
@@ -137,7 +142,7 @@ class ChatRepositoryImpl @Inject constructor(
             conversationId = conversationId,
             role = Role.ASSISTANT,
             content = content,
-            thinking = null,
+            thinking = reasoning.ifBlank { null },
             tokens = null,
             createdAt = System.currentTimeMillis()
         )

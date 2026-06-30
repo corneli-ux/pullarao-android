@@ -62,9 +62,9 @@ enum class ThinkingMode(val id: String, val label: String) {
 data class ChatParams(
     val model: ChatModel = ChatModel.GLM_4_6,
     val temperature: Float = 0.7f,
-    val maxTokens: Int = 4096,
+    val maxTokens: Int = 8192,
     val topP: Float = 0.9f,
-    val thinking: ThinkingMode = ThinkingMode.DISABLED,
+    val thinking: ThinkingMode = ThinkingMode.ENABLED,
     val systemPrompt: String = "",
     val streaming: Boolean = true
 )
