@@ -98,7 +98,7 @@ class BuildViewModel @Inject constructor(
                             .get().build()
                     ).execute().use { it.body?.string() ?: "[]" }
                 }
-                val json = try { JSONObject(res) } catch (_: Exception) { JSONObject().put("projects", JSONArray()) }
+                val json = try { JSONObject(res) } catch (_: Exception) { JSONObject().put("project", JSONObject()) }
                 val arr = json.optJSONArray("projects") ?: JSONArray()
                 val projects = (0 until arr.length()).map { i ->
                     val p = arr.getJSONObject(i)
@@ -131,7 +131,7 @@ class BuildViewModel @Inject constructor(
                             .get().build()
                     ).execute().use { it.body?.string() ?: "{}" }
                 }
-                val json = try { JSONObject(res) } catch (_: Exception) { JSONObject().put("projects", JSONArray()) }
+                val json = try { JSONObject(res) } catch (_: Exception) { JSONObject().put("project", JSONObject()) }
                 _state.value = _state.value.copy(
                     githubConnected = json.optBoolean("connected", false),
                     githubLogin = json.optString("githubLogin", null)
@@ -151,7 +151,7 @@ class BuildViewModel @Inject constructor(
                             .get().build()
                     ).execute().use { it.body?.string() ?: "{}" }
                 }
-                val json = try { JSONObject(res) } catch (_: Exception) { JSONObject().put("projects", JSONArray()) }
+                val json = try { JSONObject(res) } catch (_: Exception) { JSONObject().put("project", JSONObject()) }
                 val arr = json.optJSONArray("targets") ?: JSONArray()
                 val targets = (0 until arr.length()).map { arr.getJSONObject(it).getString("provider") }
                 _state.value = _state.value.copy(deployTargets = targets)
@@ -316,7 +316,7 @@ class BuildViewModel @Inject constructor(
                             .get().build()
                     ).execute().use { it.body?.string() ?: "{}" }
                 }
-                val json = try { JSONObject(res) } catch (_: Exception) { JSONObject().put("projects", JSONArray()) }.getJSONObject("project")
+                val json = try { JSONObject(res) } catch (_: Exception) { JSONObject().put("project", JSONObject()) }.getJSONObject("project")
                 val filesArr = json.optJSONArray("files") ?: JSONArray()
                 val files = (0 until filesArr.length()).map {
                     val f = filesArr.getJSONObject(it)
