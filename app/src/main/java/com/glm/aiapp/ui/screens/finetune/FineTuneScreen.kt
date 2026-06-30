@@ -24,7 +24,7 @@ fun FineTuneScreen(vm: FineTuneViewModel = hiltViewModel()) {
 
     Column(Modifier.fillMaxSize().padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Text(
-            "Fine-tune Studio — manage datasets and training jobs for your custom GLM models.",
+            "Fine-tune Studio — manage datasets and training jobs for your custom Pullarao models.",
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
@@ -59,7 +59,7 @@ fun FineTuneScreen(vm: FineTuneViewModel = hiltViewModel()) {
             singleLine = true
         )
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            listOf("glm-4.6", "glm-4.5", "glm-4-plus", "glm-4-air", "glm-4-flash").forEach { m ->
+            listOf("Pullarao 1", "Pullarao 1 Lite", "Pullarao 1 Plus", "Pullarao 1 Air", "Pullarao 1 Flash").forEach { m ->
                 FilterChip(
                     selected = state.newBaseModel == m,
                     onClick = { vm.setBaseModel(m) },
@@ -99,7 +99,7 @@ fun FineTuneScreen(vm: FineTuneViewModel = hiltViewModel()) {
         if (jobs.isEmpty()) {
             EmptyState(
                 title = "No jobs yet",
-                subtitle = "Queue a job above to start training your custom GLM."
+                subtitle = "Queue a job above to start training your custom Pullarao."
             )
         } else {
             LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.weight(1f)) {

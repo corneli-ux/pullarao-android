@@ -110,7 +110,7 @@ fun VisionScreen(vm: VisionViewModel = hiltViewModel()) {
         }
 
         if (state.isLoading) {
-            LoadingState(message = "GLM is looking at your attachment…")
+            LoadingState(message = "Pullarao is looking at your attachment…")
         }
 
         state.analysis?.let { text ->

@@ -95,11 +95,11 @@ private fun ProjectsTab(state: BuildUiState, vm: BuildViewModel) {
                     if (state.isGenerating) {
                         CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp, color = MaterialTheme.colorScheme.onPrimary)
                         Spacer(Modifier.width(8.dp))
-                        Text("Generating with GLM-5.2…")
+                        Text("Generating with Pullarao 1…")
                     } else {
                         Icon(Icons.Filled.Build, contentDescription = null, modifier = Modifier.size(18.dp))
                         Spacer(Modifier.width(8.dp))
-                        Text("Generate with GLM-5.2")
+                        Text("Generate with Pullarao 1")
                     }
                 }
             }
@@ -110,7 +110,7 @@ private fun ProjectsTab(state: BuildUiState, vm: BuildViewModel) {
         if (state.isLoading) {
             LoadingState(message = "Loading projects…")
         } else if (state.projects.isEmpty()) {
-            EmptyState(title = "No projects yet", subtitle = "Describe an app above and GLM-5.2 will generate it.")
+            EmptyState(title = "No projects yet", subtitle = "Describe an app above and Pullarao 1 will generate it.")
         } else {
             LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 items(state.projects, key = { it.id }) { p ->

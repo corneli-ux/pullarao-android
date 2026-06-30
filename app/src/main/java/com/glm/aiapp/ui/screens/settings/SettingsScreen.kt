@@ -154,7 +154,7 @@ fun SettingsScreen(vm: SettingsViewModel = hiltViewModel(), loginVm: LoginViewMo
         SectionCard(title = "About") {
             Text("Pullarao 1", style = MaterialTheme.typography.titleSmall)
             Text("Version 1.0.0", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            Text("Powered by GLM-5.2 open source · No API key needed for students", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text("Powered by Pullarao 1 open source · No API key needed for students", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
 }

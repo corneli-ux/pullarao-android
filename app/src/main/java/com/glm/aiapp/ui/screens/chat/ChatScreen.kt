@@ -89,7 +89,7 @@ fun ChatScreen(vm: ChatViewModel = hiltViewModel()) {
                         StreamingBubble(
                             text = streamingText,
                             thinking = streamingThinking,
-                            model = settings?.chatParams?.model?.label ?: "GLM"
+                            model = settings?.chatParams?.model?.label ?: "Pullarao 1"
                         )
                     }
                 }
@@ -118,7 +118,7 @@ fun ChatScreen(vm: ChatViewModel = hiltViewModel()) {
                     value = input,
                     onValueChange = { input = it },
                     modifier = Modifier.weight(1f),
-                    placeholder = { Text("Message GLM…") },
+                    placeholder = { Text("Message Pullarao…") },
                     shape = RoundedCornerShape(24.dp),
                     maxLines = 5,
                     keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send, capitalization = KeyboardCapitalization.Sentences),

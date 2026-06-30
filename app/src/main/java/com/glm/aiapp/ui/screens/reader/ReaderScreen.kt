@@ -49,11 +49,11 @@ fun ReaderScreen(vm: ReaderViewModel = hiltViewModel()) {
         }
 
         if (state.isLoading) {
-            LoadingState(message = "GLM is reading the page…")
+            LoadingState(message = "Pullarao is reading the page…")
         } else if (state.result == null) {
             EmptyState(
                 title = "Read any web page",
-                subtitle = "Paste a URL and GLM fetches the HTML, extracts the title and main content."
+                subtitle = "Paste a URL and Pullarao fetches the HTML, extracts the title and main content."
             )
         } else {
             val r = state.result!!

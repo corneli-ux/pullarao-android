@@ -14,7 +14,14 @@ import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.*
+import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.OkHttpClient
+import okhttp3.Request
+import okhttp3.RequestBody.Companion.toRequestBody
+import org.json.JSONArray
+import org.json.JSONObject
 import java.util.UUID
+import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -26,6 +33,11 @@ class ChatRepositoryImpl @Inject constructor(
     private val settingsRepo: SettingsRepository,
     private val json: Json
 ) : ChatRepository {
+
+    private val httpClient = OkHttpClient.Builder()
+        .connectTimeout(30, TimeUnit.SECONDS)
+        .readTimeout(120, TimeUnit.SECONDS)
+        .build()
 
     override fun observeConversations(): Flow<List<Conversation>> =
         db.conversationDao().observeAll().map { list -> list.map { it.toDomain() } }
@@ -62,47 +74,74 @@ class ChatRepositoryImpl @Inject constructor(
     ): Message {
         val settings = settingsRepo.settings.first()
         if (settings.sessionToken.isBlank()) {
-            error("Not signed in. Open Settings → Account → Sign in with your email and password.")
+            error("Not signed in.")
         }
         val conv = db.conversationDao().getById(conversationId)
-            ?: error("Conversation $conversationId not found")
+            ?: error("Conversation not found")
         val history = db.messageDao().observeByConversation(conversationId).first()
 
-        // Build the messages array using org.json
-        // FILTER OUT empty messages — previous failed attempts may have saved
-        // assistant messages with blank content, which GLM rejects
-        val messagesJson = org.json.JSONArray().apply {
+        // Build messages — filter out empty content (from previous failed attempts)
+        val messagesJson = JSONArray().apply {
             if (conv.systemPrompt.isNotBlank()) {
-                put(org.json.JSONObject().put("role", "system").put("content", conv.systemPrompt))
+                put(JSONObject().put("role", "system").put("content", conv.systemPrompt))
             }
             history.forEach { m ->
                 if (m.content.isNotBlank()) {
-                    put(org.json.JSONObject().put("role", m.role.lowercase()).put("content", m.content))
+                    put(JSONObject().put("role", m.role.lowercase()).put("content", m.content))
                 }
             }
         }
-        val requestBody = org.json.JSONObject()
+
+        val requestBody = JSONObject()
             .put("messages", messagesJson)
             .put("temperature", Math.round(params.temperature * 100.0) / 100.0)
             .put("max_tokens", params.maxTokens)
             .toString()
 
         val platformUrl = settings.platformUrl.trimEnd('/')
-        val url = "$platformUrl/api/glm/chat"
+        val url = "$platformUrl/api/glm/chat-sync"
 
-        val contentBuilder = StringBuilder()
-        val thinkingBuilder = StringBuilder()
+        // Use non-streaming HTTP request — more reliable on mobile than SSE
+        val content = withContext(Dispatchers.IO) {
+            val req = Request.Builder()
+                .url(url)
+                .header("Authorization", "Bearer ${settings.sessionToken}")
+                .header("Content-Type", "application/json")
+                .post(requestBody.toRequestBody("application/json".toMediaType()))
+                .build()
 
-        // The platform returns SSE events: { "type": "token"|"done"|"error", "content"|"message" }
-        streamClient.streamAuthorized(url, settings.sessionToken, requestBody).collect { evt ->
-            val type = evt.optString("type", "")
-            when (type) {
-                "token" -> {
-                    val tok = evt.optString("content", "")
-                    if (tok.isNotEmpty()) { onToken(tok); contentBuilder.append(tok) }
+            httpClient.newCall(req).execute().use { res ->
+                val body = res.body?.string() ?: ""
+                if (!res.isSuccessful) {
+                    val msg = if (body.isNotBlank()) {
+                        try { JSONObject(body).optString("error", "HTTP ${res.code}") }
+                        catch (_: Exception) { "Server error (HTTP ${res.code})" }
+                    } else {
+                        "Server error (HTTP ${res.code})"
+                    }
+                    error(msg)
                 }
-                "done" -> { /* stream finished */ }
-                "error" -> error(evt.optString("message", "Chat request failed"))
+                if (body.isBlank()) error("Server returned empty response")
+
+                val json = JSONObject(body)
+                json.optString("content", "")
+            }
+        }
+
+        if (content.isBlank()) {
+            error("Pullarao returned an empty response. Please try again.")
+        }
+
+        // Simulate streaming by emitting the response in chunks for UX
+        val words = content.split(" ")
+        val chunkSize = maxOf(1, words.size / 20) // ~20 chunks
+        var current = ""
+        for (i in words.indices) {
+            current = if (current.isEmpty()) words[i] else "$current ${words[i]}"
+            if (i % chunkSize == 0 || i == words.lastIndex) {
+                onToken(if (i == words.lastIndex) content else current) // emit accumulated text
+                // Small delay for visual effect
+                Thread.sleep(20)
             }
         }
 
@@ -110,8 +149,8 @@ class ChatRepositoryImpl @Inject constructor(
             id = UUID.randomUUID().toString(),
             conversationId = conversationId,
             role = Role.ASSISTANT,
-            content = contentBuilder.toString(),
-            thinking = thinkingBuilder.toString().ifBlank { null },
+            content = content,
+            thinking = null,
             tokens = null,
             createdAt = System.currentTimeMillis()
         )
@@ -122,32 +161,17 @@ class ChatRepositoryImpl @Inject constructor(
     // ---- Mappers ----
 
     private fun ConversationEntity.toDomain() = Conversation(
-        id = id,
-        title = title,
-        systemPrompt = systemPrompt,
-        model = model,
-        thinkingEnabled = thinkingEnabled,
-        createdAt = createdAt,
-        updatedAt = updatedAt
+        id = id, title = title, systemPrompt = systemPrompt, model = model,
+        thinkingEnabled = thinkingEnabled, createdAt = createdAt, updatedAt = updatedAt
     )
 
     private fun MessageEntity.toDomain() = Message(
-        id = id,
-        conversationId = conversationId,
-        role = Role.valueOf(role.uppercase()),
-        content = content,
-        thinking = thinking,
-        tokens = tokens,
-        createdAt = createdAt
+        id = id, conversationId = conversationId, role = Role.valueOf(role.uppercase()),
+        content = content, thinking = thinking, tokens = tokens, createdAt = createdAt
     )
 
     private fun Message.toEntity() = MessageEntity(
-        id = id,
-        conversationId = conversationId,
-        role = role.name.lowercase(),
-        content = content,
-        thinking = thinking,
-        tokens = tokens,
-        createdAt = createdAt
+        id = id, conversationId = conversationId, role = role.name.lowercase(),
+        content = content, thinking = thinking, tokens = tokens, createdAt = createdAt
     )
 }

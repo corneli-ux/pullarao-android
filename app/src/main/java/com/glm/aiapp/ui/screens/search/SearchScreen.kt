@@ -51,7 +51,7 @@ fun SearchScreen(vm: SearchViewModel = hiltViewModel()) {
         } else if (state.results.isEmpty() && state.query.isBlank()) {
             EmptyState(
                 title = "Search anything",
-                subtitle = "Powered by GLM web_search — get fresh results with snippets and sources."
+                subtitle = "Powered by Pullarao — get fresh results with snippets and sources."
             )
         } else {
             LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxSize()) {
