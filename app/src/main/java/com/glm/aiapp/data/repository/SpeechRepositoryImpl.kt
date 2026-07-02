@@ -15,7 +15,7 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 /**
- * TTS/ASR — routed through the platform's `/api/glm/speech/*` proxy (see
+ * TTS/ASR — routed through the platform's speech proxy endpoints (see
  * PlatformClient), not called directly against Zhipu. This keeps the
  * GLM_API_KEY server-side, matching how vision/image/search already work.
  */
